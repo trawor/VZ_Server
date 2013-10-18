@@ -31,13 +31,11 @@ function getPosts (userid,from,callback) {
       method: 'GET'
     };
     AV.Cloud.httpRequest(options).then(function(res) {
-        var json=res.data;
+            var json=res.data;
         
             var statuses=json['statuses'];
             
             var dels=[];
-            var savs=[];
-
             var origs=[];
             for (var i = 0; i < statuses.length; i++) {
                 var item=statuses[i];
@@ -85,17 +83,14 @@ function getPosts (userid,from,callback) {
 
                 //获取图片
                 var pics=orig['pic_urls'];
-                post.pics=pics;
-
-                // if (pics && pics.length>0) {
-                //     var tmp=[];
-                //     for (var i = 0; i < pics.length; i++) {
-                //         tmp.push(pics[i]['thumbnail_pic']);
-                //         console.log(i);
-                //     };
-                //     //post['pics']=tmp;
-                //     console.log(tmp)
-                // }
+                
+                if (pics && pics.length>0) {
+                    var tmp=[];
+                    for (var j = 0; j < pics.length; j++) {
+                        tmp.push(pics[j]['thumbnail_pic']);
+                    };
+                    post.pics=tmp;
+                }
 
                 //获取坐标
                 if (orig['geo']) {
@@ -103,9 +98,8 @@ function getPosts (userid,from,callback) {
                 };
                 origs.push(post);
 
-                var postObj = new Post(post);
+                
 
-                savs.push(postObj);
             };
             
             if (dels.length>0) {
@@ -117,14 +111,23 @@ function getPosts (userid,from,callback) {
                 });
             };
 
-            if (savs.length>0) {
-                AV.Object.saveAll(savs,function(list, error){
-                        if (list) {
-                            callback(null,list);
-                        }else{
-                            callback(error,null);
+            if (origs.length>0) {
+                for (var i = 0; i < origs.length; i++) {
+                    var postObj = new Post();
+                    postObj.save(origs[i],{
+                        success: function(p) {
+                          console.log('succeed ',p.id);
+                        },
+                        error: function(p, error) {
+                          
+                          if (error.code!=137) {
+                            console.error(error);
+                          };
                         }
-                });
+                    });
+                };
+
+                callback(null,origs);
             }else{
                 callback(null,null);
             }
