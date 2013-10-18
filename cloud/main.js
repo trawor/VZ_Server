@@ -1,7 +1,5 @@
 require("cloud/app.js");
 
-AV.Cloud.define("hello", function(request, response) {
-  response.success("Hello world!");
+AV.Cloud.define("hello", function(req, res) {
+  res.success("Hello world! 222");
 });
-
-console.log('main run')

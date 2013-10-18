@@ -23,21 +23,17 @@ function getPosts (userid,from,callback) {
     console.log(url);
 
     http.get(url, function(res) {
-      console.log("Got response: " + res.data);
-    }).on('error', function(err) {
-      callback(err);
-    });
+        console.log('STATUS: ' + res.statusCode);
+    
+        var pageData = "";
+        res.setEncoding('utf8');
+        res.on('data', function (chunk) {
+            pageData += chunk;
+        });
 
-    return;
-    weibo.user_timeline(user, cursor, function(err,statuses){
-        callback();return;
-
-        if (err) {
-            callback(err);
-        } else {
-            var statuses=statuses['items'];
+        res.on('end', function(){
+            var statuses=JSON.parse(pageData)['statuses'];
             var origs=[];
-
             for (var i = 0; i < statuses.length; i++) {
                 var item=statuses[i];
                 var orig=item['retweeted_status'];
@@ -46,15 +42,25 @@ function getPosts (userid,from,callback) {
 
                 var pid=orig['idstr'];
                 var text=orig['text'];
-                
                 var type=0; //0:出售 1:求购 2:删除
                 
+                var query = new AV.Query('Post').equalTo('wbid',pid);
+                console.log(query);
+
+                query.first({
+                    success: function(result) {
+                        console.log(result);
+                    }
+                });
+
                 if (text.indexOf('此微博已被作者删除')>0) {
                     //TODO: 从数据库中标记为已交易 (Travis 13-10-13 16:44)
 
                     continue;
                 }else{
                     //TODO: 判断是否已经存在数据库中 (Travis 13-10-13 17:36)
+                    
+
 
                     //删除@的多个微博账号
                     var delReg=/@[^ $]+/g;
@@ -66,48 +72,59 @@ function getPosts (userid,from,callback) {
                     //查找金额  /(\d{1,})\s*[元|包邮]|[币|￥]\s*(\d{1,})/
                 }
 
-                    
                 var post={
-                    id:pid,
+                    wbid:pid,
                     url:orig['t_url'],
                     text:text,
                     time:orig['created_at'],
-                    
                 }
+
+                // var Post = AV.Object.extend("Post");
+                // var post = new Post();
+                // post.wbid=pid;
+                // post.url=orig['t_url'];
+                // post.text=text;
+                // post.time=orig['created_at'];
 
                 //用户信息
                 var ouser=orig['user'];
                 post['user']={
                         id:ouser['idstr'],
                         name:ouser['name'],
-                        screen_name:ouser['screen_name'],
+                        //screen_name:ouser['screen_name'],
                         avatar:ouser['profile_image_url'],
                         verified:ouser['verified'],
                 }
 
-                //获取图片
-                var pics=orig['pic_urls'];
-                if (pics.length>0) {
-                    var tmp=[];
-                    for (var i = 0; i < pics.length; i++) {
-                        tmp[i]=pics[i]['thumbnail_pic'];
-                    };
-                    post['pics']=tmp;
-                }else if(orig['thumbnail_pic']){
-                    pics=[orig['thumbnail_pic']];
-                    post['pics']=pics;
-                }
+                // //获取图片
+                // var pics=orig['pic_urls'];
+                // if (pics.length>0) {
+                //     var tmp=[];
+                //     for (var i = 0; i < pics.length; i++) {
+                //         tmp[i]=pics[i]['thumbnail_pic'];
+                //     };
+                //     post['pics']=tmp;
+                // }else if(orig['thumbnail_pic']){
+                //     pics=[orig['thumbnail_pic']];
+                //     post['pics']=pics;
+                // }
 
                 //获取坐标
                 if (orig['geo']) {
                     post.geo=orig['geo'];
                 };
+
                 
                 origs.push(post);
             };
+            
             callback(null,origs);
-        }
+        });
+    }).on('error', function(err) {
+      callback(err);
     });
+
+    
 }
 
 
