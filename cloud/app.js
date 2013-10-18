@@ -16,13 +16,18 @@ var oauth_callback_url = 'http://127.0.0.1:8080/user/bind/weibo';
 weibo.init('weibo', appkey, secret, oauth_callback_url);
 
 
-var http= require('http');
+//var http= require('http');
 
 function getPosts (userid,from,callback) {
-    var url="http://api.weibo.com/2/statuses/user_timeline.json?count=20&source="+appkey+"&uid="+userid+"&since_id="+from;
-    console.log(url);
+    var path="/2/statuses/user_timeline.json?count=20&source="+appkey+"&uid="+userid+"&since_id="+from;
+    var url="http://api.weibo.com"+path;
+    console.log(path);
 
-    http.get(url, function(res) {
+    var options = {
+      url:url,
+      method: 'GET'
+    };
+    AV.Cloud.httpRequest(options).then(function(res) {
         console.log('STATUS: ' + res.statusCode);
     
         var pageData = "";
@@ -120,8 +125,6 @@ function getPosts (userid,from,callback) {
             
             callback(null,origs);
         });
-    }).on('error', function(err) {
-      callback(err);
     });
 
     
