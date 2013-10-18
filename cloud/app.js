@@ -45,32 +45,42 @@ function getPosts (userid,from,callback) {
 
                 var pid=orig['idstr'];
                 var text=orig['text'];
-                var type=0; //0:出售 1:求购 2:删除
+                
                 
                 if (text.indexOf('此微博已被作者删除')>0) {
                     //TODO: 从数据库中标记为已交易 (Travis 13-10-13 16:44)
                     dels.push(pid);
                     continue;
-                }else{
-                    //TODO: 判断是否已经存在数据库中 (Travis 13-10-13 17:36)
-                    
-                    //删除@的多个微博账号
-                    var delReg=/@[^ $]+/g;
-                    text=text.replace(delReg,"");
-
-                    //删除所有空格
-                    text=text.replace(/\s\s/g, "");
-
-                    //查找金额  /(\d{1,})\s*[元|包邮]|[币|￥]\s*(\d{1,})/
                 }
+                    
+                //TODO: 判断是否已经存在数据库中 (Travis 13-10-13 17:36)
+                
+                //删除@的多个微博账号
+                var delReg=/@[^ $]+|我在:http:\/\/[a-zA-Z./0-9]+/g;
+                text=text.replace(delReg,"");
 
+                //删除连续空格
+                text=text.replace(/\s\s/g, "");
+
+                //0:出售 1:求购 2:删除
+                var type=0; 
+                if (text.indexOf('求购')>=0) {type=1};
+               
                 var post={
                     wbid:pid,
-                    url:orig['t_url'],
+                    type:type,
                     text:text,
                     time:new Date(orig['created_at']),
+
                 }
                 
+                //查找金额
+                var priceReg=/(\d{1,})[出|元|包邮|不刀]|[币|￥|价格](\d{1,})/;
+                parr = priceReg.exec(text); 
+                if (parr) {
+                    post.price=parr[parr.length-1];
+                };
+
                 //用户信息
                 var ouser=orig['user'];
                 post['user']={
