@@ -8,36 +8,36 @@ app.set('view engine', 'ejs');    // 设置template引擎
 app.use(express.bodyParser());    // 读取请求body的中间件
 
 //================= Weibo ================
-var weibo = require('weibo');
+// var weibo = require('weibo');
 
 var appkey = '795541860';
-var secret = '02f10f98f7c62bc49b60424035dcf5a1';
-var oauth_callback_url = 'http://127.0.0.1:8080/user/bind/weibo';
-weibo.init('weibo', appkey, secret, oauth_callback_url);
+// var secret = '02f10f98f7c62bc49b60424035dcf5a1';
+// var oauth_callback_url = 'http://127.0.0.1:8080/user/bind/weibo';
+// weibo.init('weibo', appkey, secret, oauth_callback_url);
 
 
 //var http= require('http');
 
+var postQuery=new AV.Query('Post');
+var Post = AV.Object.extend("Post");
+
 function getPosts (userid,from,callback) {
     var path="/2/statuses/user_timeline.json?count=20&source="+appkey+"&uid="+userid+"&since_id="+from;
     var url="http://api.weibo.com"+path;
-    console.log(path);
+    console.log(url);
 
     var options = {
       url:url,
       method: 'GET'
     };
     AV.Cloud.httpRequest(options).then(function(res) {
-        console.log('STATUS: ' + res.statusCode);
-    
-        var pageData = "";
-        res.setEncoding('utf8');
-        res.on('data', function (chunk) {
-            pageData += chunk;
-        });
+        var json=res.data;
+        
+            var statuses=json['statuses'];
+            
+            var dels=[];
+            var savs=[];
 
-        res.on('end', function(){
-            var statuses=JSON.parse(pageData)['statuses'];
             var origs=[];
             for (var i = 0; i < statuses.length; i++) {
                 var item=statuses[i];
@@ -49,30 +49,19 @@ function getPosts (userid,from,callback) {
                 var text=orig['text'];
                 var type=0; //0:出售 1:求购 2:删除
                 
-                var query = new AV.Query('Post').equalTo('wbid',pid);
-                console.log(query);
-
-                query.first({
-                    success: function(result) {
-                        console.log(result);
-                    }
-                });
-
                 if (text.indexOf('此微博已被作者删除')>0) {
                     //TODO: 从数据库中标记为已交易 (Travis 13-10-13 16:44)
-
+                    dels.push(pid);
                     continue;
                 }else{
                     //TODO: 判断是否已经存在数据库中 (Travis 13-10-13 17:36)
                     
-
-
                     //删除@的多个微博账号
                     var delReg=/@[^ $]+/g;
                     text=text.replace(delReg,"");
 
                     //删除所有空格
-                    text=text.replace(/\s/g, "");
+                    text=text.replace(/\s\s/g, "");
 
                     //查找金额  /(\d{1,})\s*[元|包邮]|[币|￥]\s*(\d{1,})/
                 }
@@ -81,16 +70,9 @@ function getPosts (userid,from,callback) {
                     wbid:pid,
                     url:orig['t_url'],
                     text:text,
-                    time:orig['created_at'],
+                    time:new Date(orig['created_at']),
                 }
-
-                // var Post = AV.Object.extend("Post");
-                // var post = new Post();
-                // post.wbid=pid;
-                // post.url=orig['t_url'];
-                // post.text=text;
-                // post.time=orig['created_at'];
-
+                
                 //用户信息
                 var ouser=orig['user'];
                 post['user']={
@@ -101,62 +83,79 @@ function getPosts (userid,from,callback) {
                         verified:ouser['verified'],
                 }
 
-                // //获取图片
-                // var pics=orig['pic_urls'];
-                // if (pics.length>0) {
+                //获取图片
+                var pics=orig['pic_urls'];
+                post.pics=pics;
+
+                // if (pics && pics.length>0) {
                 //     var tmp=[];
                 //     for (var i = 0; i < pics.length; i++) {
-                //         tmp[i]=pics[i]['thumbnail_pic'];
+                //         tmp.push(pics[i]['thumbnail_pic']);
+                //         console.log(i);
                 //     };
-                //     post['pics']=tmp;
-                // }else if(orig['thumbnail_pic']){
-                //     pics=[orig['thumbnail_pic']];
-                //     post['pics']=pics;
+                //     //post['pics']=tmp;
+                //     console.log(tmp)
                 // }
 
                 //获取坐标
                 if (orig['geo']) {
                     post.geo=orig['geo'];
                 };
-
-                
                 origs.push(post);
+
+                var postObj = new Post(post);
+
+                savs.push(postObj);
             };
             
-            callback(null,origs);
-        });
+            if (dels.length>0) {
+                var query = postQuery.containedIn('wbid',dels);
+                query.destroyAll({
+                    success:function(result){
+                        console.log('delete result:',result);
+                    }
+                });
+            };
+
+            if (savs.length>0) {
+                AV.Object.saveAll(savs,function(list, error){
+                        if (list) {
+                            callback(null,list);
+                        }else{
+                            callback(error,null);
+                        }
+                });
+            }else{
+                callback(null,null);
+            }
     });
 
     
 }
 
+exports.refresh=function(callback){
+    var accs=['2043408047','1761596064','1882458640','1841288857','3787475667'];
+
+    var index=Math.ceil(Math.random()*100)%accs.length;
+    
+    var acc=accs[index];
+    getPosts(acc,0,callback);
+}
 
 //================= API ================
 
 //获取最新微博 
 app.get('/api/refresh/weibo',function (req,res) {
-    //1005051882458640
-    //1005051761596064
-    //1005052043408047
-    //1841288857
-    //3787475667
-    //206198205
 
-    var accs=['2043408047','1761596064','1882458640','1841288857','3787475667'];
-
-    var sec=(new Date()).getSeconds();
-    var index=sec%accs.length;
-
-    var acc=accs[index];
-    getPosts(acc,0,function(err,statuses){
+    exports.refresh(function (err,statuses) {
         if (err) {
-            console.error(err);
-        } else {
-            //res.json(statuses);
-            //res.send(acc+' Get New Post: '+ statuses.length);
+            res.json(err);
+        } else if(statuses){
             res.json(statuses);
+        }else{
+            res.send('nothing to do');
         }
-    });
+    })
 });
 
 
@@ -169,7 +168,7 @@ app.get('/hello', function(req, res) {
 
 app.get('/test', function(req, res) {
 
-    res.send();
+    res.send(Math.ceil(Math.random()*100)%5+'');
 });
 
 app.get('/test/:user/:action', function(req, res) {

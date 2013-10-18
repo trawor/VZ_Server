@@ -1,5 +1,13 @@
-require("cloud/app.js");
+var app=require("cloud/app.js");
 
-AV.Cloud.define("hello", function(req, res) {
-  res.success("Hello world! 222");
+AV.Cloud.setInterval("refresh",300, function() {
+	app.refresh(function (err,statuses) {
+        if (err) {
+            console.error(err);
+        } else if(statuses){
+            console.log("Get News:"+statuses.length);
+        }else{
+            console.log('nothing to do');
+        }
+    });
 });
