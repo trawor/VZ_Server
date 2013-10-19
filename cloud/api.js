@@ -1,4 +1,4 @@
-var config  = require('./config/app');
+var config  = require('./cloud/config');
 var weibo   = require('./cloud/weibo');
 
 var Post = AV.Object.extend("Post");
