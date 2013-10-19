@@ -1,17 +1,5 @@
-var config  = {
-    default_count:30,
-    weibo:{
-        appkey:'2858658895',
-        appsec:"9d97c1cce2893cbdcdc970f05bc55fe4",
-    },
-    channel_account:{
-        shuma:['2043408047','1761596064','1882458640','1841288857','3787475667'],
-        //muying:['1769267263','2813948131','3057011237','3263012774'],
-    },
-    block_account:['3170023534'],
-}
-
-var weibo   = require('./cloud/weibo');
+var model  = require('cloud/model.js');
+var weibo   = require('cloud/weibo.js');
 
 var Post = AV.Object.extend("Post");
 var postQuery=new AV.Query('Post').descending('objectId');
@@ -84,7 +72,7 @@ exports.post={
 
 //通过频道刷新微博数据
 function refresh (req,res,channel_name) {
-    var accs=config.channel_account[channel_name];
+    var accs=model.channel_account[channel_name];
     if (accs) {
         var ret='refresh channel: '+channel_name;
         var index=Math.ceil(Math.random()*100)%accs.length;
@@ -105,7 +93,7 @@ function refresh (req,res,channel_name) {
             for (var i = 0; i < posts.length; i++) {
                 var post=posts[i];
 
-                if(config.block_account.indexOf(post.user.id)>-1){
+                if(model.block_account.indexOf(post.user.id)>-1){
                     console.info('ignore user: '+ post.user.id);
                     continue;
                 }                
@@ -187,7 +175,7 @@ exports.refresh={
         refresh(req,res,channel_name);
     },
     all:function (req,res) {
-        for (var k in config.channel_account) {
+        for (var k in model.channel_account) {
             refresh(req,res,k);
         }
     }
