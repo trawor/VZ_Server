@@ -86,7 +86,7 @@ function refresh (req,res,channel_name) {
             ret+='<br/>get posts:'+JSON.stringify(posts);
             ret+='<br/>will del :'+dels;
             ret+='<br/>==========================';
-            res.send(ret);
+            if(res)res.send(ret);
 
             var last_wbid='0';
 
@@ -124,8 +124,38 @@ function refresh (req,res,channel_name) {
             };
 
             //TODO: 从数据库中标记为已交易 (Travis 13-10-13 16:44)
-            for (var i = 0; i < posts.length; i++) {
-
+            for (var i = 0; i < dels.length; i++) {
+                var q=new AV.Query('Post').equalTo('wbid',dels[i]);
+                q.first({
+                    success: function(p) {
+                        
+                        if (p!=undefined && p._serverData.type!=2) {
+                            console.log(p._serverData.text);
+                            console.log('should del:'+p._serverData.wbid+" type:"+p._serverData.type);
+                            //console.log(p.toJSON());
+                            // p.set('type',2,{
+                            //     success:function  (argument) {
+                            //         console.log('update del:'+argument);
+                            //     },
+                            //     error: function(p, error) {
+                            //       console.log('update error:'+error);
+                            //     }
+                            // });
+                            p.save({type:2},{
+                                success:function  (argument) {
+                                    console.log('update del:'+argument.toJSON());
+                                },
+                                error: function(p, error) {
+                                  console.log('update error:'+error);
+                                }
+                            });
+                        };
+                        
+                    },
+                    error: function(p, error) {
+                      console.error(error);
+                    }
+                });
             }
 
             //TODO: save last req id

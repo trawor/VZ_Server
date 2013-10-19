@@ -1,13 +1,7 @@
 var app=require("cloud/app.js");
+var api=require("cloud/api.js");
 
-AV.Cloud.setInterval("refresh",600, function() {
-	app.refresh(function (err,statuses) {
-        if (err) {
-            console.error(err);
-        } else if(statuses){
-            console.log("Get News:"+statuses.length);
-        }else{
-            console.log('nothing to do');
-        }
-    });
+AV.Cloud.setInterval("refresh",1800, function() {
+    console.info('refresh all');
+	api.refresh.all();
 });
