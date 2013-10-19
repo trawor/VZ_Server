@@ -1,4 +1,4 @@
-var config  = = {
+var config  = {
     default_count:30,
     weibo:{
         appkey:'2858658895',
