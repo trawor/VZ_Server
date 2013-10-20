@@ -1,4 +1,4 @@
-var model   = require('cloud/model');
+var model   = require('cloud/model.js');
 var weibo   = require('cloud/weibo.js');
 
 var Post = AV.Object.extend("Post");
