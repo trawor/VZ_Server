@@ -188,7 +188,9 @@ exports.refresh={
         refresh(req,res,channel_name);
     },
     all:function (req,res) {
-        console.info('refresh all');
+        console.info('refresh all:');
+        console.info(model.channel_account);
+        
         for (var k in model.channel_account) {
             refresh(req,res,k);
         }
