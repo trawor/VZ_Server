@@ -89,11 +89,14 @@ exports.post={
 //通过频道刷新微博数据
 function refresh (req,res,channel_name) {
     var accs=model.channel_account[channel_name];
+
+    console.info('refresh: '+ channel_name);
+    
     if (accs) {
         var index=Math.ceil(Math.random()*100)%accs.length;
         var acc=accs[index];
 
-        console.log('refresh:'+channel_name+" account:"+acc);
+        console.info('refresh: '+channel_name+" account:"+acc);
 
         weibo.fetchPosts(acc,0,function (posts,dels) {
             if(res)res.json(posts);
@@ -175,7 +178,7 @@ function refresh (req,res,channel_name) {
         });
         
     }else{
-        res.send('no channel: '+req.params.channel);
+        res.send('no channel: '+channel_name);
     }
 }
 
