@@ -29,6 +29,9 @@ app.map({
   '/api': {
     //记录
     '/post':{
+        '/list': {
+            get: api.post.list,
+        },
         '/before/:id': {
             get: api.post.before,
         },
@@ -57,5 +60,3 @@ app.map({
 
 
 app.listen();
-
-console.log(app.routes);

@@ -2,7 +2,7 @@ var model  = require('cloud/model.js');
 var weibo   = require('cloud/weibo.js');
 
 var Post = AV.Object.extend("Post");
-var postQuery=new AV.Query('Post').descending('objectId');
+var postQuery=new AV.Query('Post');
 
 
 function query (req,res,opt) {
@@ -14,16 +14,32 @@ function query (req,res,opt) {
     }else{
         q=postQuery;
     }
-    
 
-    if (req.query.count) {
-        q=q.limit(req.query.count)
+    if (req.query.channel) {
+        q=q.equalTo('channel',req.query.channel);
     }
 
+    if (req.query.type) {
+        q=q.equalTo('type',req.query.type);
+    }
+    
     if (req.query.photo=='1') {
         q=q.exists('pics');
     };
 
+    if (req.query.verified=='1') {
+        q=q.equalTo('user.verified',true);
+    };
+
+    if (req.query.count) {
+        q=q.limit(req.query.count);
+    }else{
+        q=q.limit(model.default_count);
+    }
+
+
+
+    //q=q.descending('time');
     q.find({
       success: function(object) {
         res.json(object);
@@ -44,19 +60,19 @@ exports.post={
         query(req,res,1);
     },
 
-    after:function (req,res) {
+    list:function (req,res) {
         query(req,res,0);
     },
 
     get:function (req,res) {
         postQuery.get(req.params.id, {
           success: function(object) {
-            console.log(object['time']);
-            res.json(object);
+            var p=object.toJSON();
+            //p['time']=p['time']['iso'];
+            res.json(p);
           },
 
           error: function(object, error) {
-            console.log(postQuery._where);
             res.json(error);
           }
         });
@@ -74,19 +90,13 @@ exports.post={
 function refresh (req,res,channel_name) {
     var accs=model.channel_account[channel_name];
     if (accs) {
-        var ret='refresh channel: '+channel_name;
         var index=Math.ceil(Math.random()*100)%accs.length;
         var acc=accs[index];
 
-        ret+='<br/>will refresh account: '+acc;
-        ret+='<br/>==========================';
-
+        console.log('refresh:'+channel_name+" account:"+acc);
 
         weibo.fetchPosts(acc,0,function (posts,dels) {
-            ret+='<br/>get posts:'+JSON.stringify(posts);
-            ret+='<br/>will del :'+dels;
-            ret+='<br/>==========================';
-            if(res)res.send(ret);
+            if(res)res.json(posts);
 
             var last_wbid='0';
 
@@ -175,6 +185,7 @@ exports.refresh={
         refresh(req,res,channel_name);
     },
     all:function (req,res) {
+        console.info('refresh all');
         for (var k in model.channel_account) {
             refresh(req,res,k);
         }
