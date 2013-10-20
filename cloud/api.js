@@ -1,4 +1,4 @@
-var model  = require('cloud/model.js');
+var model  = require('./cloud/model.js');
 var weibo   = require('cloud/weibo.js');
 
 var Post = AV.Object.extend("Post");
@@ -189,10 +189,16 @@ exports.refresh={
     },
     all:function (req,res) {
         console.info('refresh all:');
-        console.info(model.channel_account);
-        
-        for (var k in model.channel_account) {
-            refresh(req,res,k);
+        if (model.channel_account) {
+            console.info(model.channel_account);
+
+            for (var k in model.channel_account) {
+                refresh(req,res,k);
+            }
+        }else{
+            console.error('can NOT get `model`!!!');
+            res.json(model);
         }
+        
     }
 }
