@@ -198,7 +198,7 @@ function refresh (req,res,channel_name) {
                             });
                     }
                     
-                    avos.lastWeiboID(acc,function (p) {
+                    if (wb) {
                         if (p) {
                             p.save({'last_wbid':last_wbid},{
                                         success:function  (argument) {
@@ -211,7 +211,9 @@ function refresh (req,res,channel_name) {
                         }else{
                             newFresh();
                         }
-                    });
+                    }else{
+                        newFresh();
+                    }
                 };
             });
         })
