@@ -11,10 +11,16 @@ exports.fetchPosts=function (userid,from,callback) {
         
         var statuses=json['statuses'];
         
+        var lastid='0';
+
         var dels=[];
         var origs=[];
         for (var i = 0; i < statuses.length; i++) {
             var item=statuses[i];
+            var itemid=item['idstr'];
+            if (itemid>lastid) {lastid=itemid};
+
+
             var orig=item['retweeted_status'];
 
             //只显示转发的内容
@@ -80,7 +86,7 @@ exports.fetchPosts=function (userid,from,callback) {
             origs.push(post);
 
         };
-
-        callback(origs,dels);
+        
+        callback(origs,dels,lastid);
     });
 }

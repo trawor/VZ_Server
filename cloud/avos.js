@@ -4,7 +4,25 @@ exports.addPost=function (json,callback) {
     
 }
 
-
+exports.lastWeiboID=function(acc,callback){
+    var q=new AV.Query('Refresh').equalTo('account',acc);
+    q.first({
+        success: function(p) {
+            console.log('get lastWeiboID:');
+            console.log(p.get('last_wbid'));
+                if (p!=undefined) {
+                    callback(p);
+                }else{
+                    callback();
+                }
+                
+            },
+        error: function(p, error) {
+                console.error(error);
+                callback();
+            }
+    });
+}
 
 
 exports.httpGet=function(url,callback){

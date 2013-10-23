@@ -1,5 +1,6 @@
 var model   = require('cloud/model.js');
 var weibo   = require('cloud/weibo.js');
+var avos    = require("cloud/avos.js");
 
 var Post = AV.Object.extend("Post");
 var postQuery=new AV.Query('Post');
@@ -98,84 +99,124 @@ function refresh (req,res,channel_name) {
 
         console.info('refresh: '+channel_name+" account:"+acc);
 
-        weibo.fetchPosts(acc,0,function (posts,dels) {
-            if(res)res.json(posts);
-
-            var last_wbid='0';
-
-            for (var i = 0; i < posts.length; i++) {
-                var post=posts[i];
-
-                if(model.block_account.indexOf(post.user.id)>-1){
-                    console.info('ignore user: '+ post.user.id);
-                    continue;
-                }                
-
-                if (post.wbid > last_wbid) {
-                    last_wbid=post.wbid;
-                };
-
-                if (accs.indexOf(post.user.id)>-1) {
-                    // 自己转自己的... 一般都是广告
-                    console.info('ignore: '+post.text);
-                    continue;
-                };
-
-                var postObj = new Post();
-                
-                post['channel']=channel_name;
-                postObj.save(post,{
-                    success: function(p) {
-                        console.log('success: '+p.id);
-                    },
-                    error: function(p, error) {
-                      if (error.code!=137) {
-                        console.error(error);
-                      }
-                    }
-                });
+        avos.lastWeiboID(acc,function (wb) {
+            var lid=0;
+            if (wb) {
+                lid=wb.get('last_wbid');
             };
 
-            //TODO: 从数据库中标记为已交易 (Travis 13-10-13 16:44)
-            for (var i = 0; i < dels.length; i++) {
-                var q=new AV.Query('Post').equalTo('wbid',dels[i]);
-                q.first({
-                    success: function(p) {
+            weibo.fetchPosts(acc,lid,function (posts,dels,last_wbid) {
+                if(res)res.json(posts);
+
+                
+                for (var i = 0; i < posts.length; i++) {
+                    var post=posts[i];
+
+                    if(model.block_account.indexOf(post.user.id)>-1){
+                        console.info('ignore user: '+ post.user.id);
+                        continue;
+                    }                
+
+                   
+                    if (accs.indexOf(post.user.id)>-1) {
+                        // 自己转自己的... 一般都是广告
+                        console.info('ignore: '+post.text);
+                        continue;
+                    };
+
+                    var postObj = new Post();
+                    
+                    post['channel']=channel_name;
+                    postObj.save(post,{
+                        success: function(p) {
+                            console.log('success: '+p.id);
+                        },
+                        error: function(p, error) {
+                          if (error.code!=137) {
+                            console.error(error);
+                          }
+                        }
+                    });
+                };
+
+                //TODO: 从数据库中标记为已交易 (Travis 13-10-13 16:44)
+                for (var i = 0; i < dels.length; i++) {
+                    var q=new AV.Query('Post').equalTo('wbid',dels[i]);
+                    q.first({
+                        success: function(p) {
+                            
+                            if (p!=undefined && p.get('type')!=2) {
+                                console.log(p._serverData.text);
+                                console.log('should del:'+p.get('last_wbid')+" type:"+p.get('type'));
+                                //console.log(p.toJSON());
+                                // p.set('type',2,{
+                                //     success:function  (argument) {
+                                //         console.log('update del:'+argument);
+                                //     },
+                                //     error: function(p, error) {
+                                //       console.log('update error:'+error);
+                                //     }
+                                // });
+                                p.save({type:2},{
+                                    success:function  (argument) {
+                                        console.log('update del:'+argument);
+                                    },
+                                    error: function(p, error) {
+                                      console.log('update error:'+error);
+                                    }
+                                });
+                            };
+                            
+                        },
+                        error: function(p, error) {
+                          console.error(error);
+                        }
+                    });
+                }
+
+                //save last req id
+                if (last_wbid) {
+                    function newFresh () {
+                        console.info('channel:'+channel_name+' > account:'+acc+' last_wbid:'+last_wbid);
                         
-                        if (p!=undefined && p._serverData.type!=2) {
-                            console.log(p._serverData.text);
-                            console.log('should del:'+p._serverData.wbid+" type:"+p._serverData.type);
-                            //console.log(p.toJSON());
-                            // p.set('type',2,{
-                            //     success:function  (argument) {
-                            //         console.log('update del:'+argument);
-                            //     },
-                            //     error: function(p, error) {
-                            //       console.log('update error:'+error);
-                            //     }
-                            // });
-                            p.save({type:2},{
-                                success:function  (argument) {
-                                    console.log('update del:'+argument.toJSON());
+                        var RefreshCLS = AV.Object.extend("Refresh");
+
+                        var ref = new RefreshCLS();
+                        ref.save(
+                            {
+                                'account':acc,
+                                'last_wbid':last_wbid,
+                            },
+                            
+                            {
+                                success: function(p) {
+                                    console.info('`Refresh` add wbid:'+p.get('last_wbid'));
                                 },
                                 error: function(p, error) {
-                                  console.log('update error:'+error);
+                                    console.error(error);
                                 }
                             });
-                        };
-                        
-                    },
-                    error: function(p, error) {
-                      console.error(error);
                     }
-                });
-            }
+                    
+                    avos.lastWeiboID(acc,function (p) {
+                        if (p) {
+                            p.save({'last_wbid':last_wbid},{
+                                        success:function  (argument) {
+                                            console.info('`Refresh` acc:'+acc+' update wbid:'+p.get('last_wbid')+' to:'+last_wbid );
+                                        },
+                                        error: function(p, error) {
+                                           console.error('`Refresh` update error:'+error);
+                                        }
+                            });
+                        }else{
+                            newFresh();
+                        }
+                    });
+                };
+            });
+        })
 
-            //TODO: save last req id
-            console.info('channel:'+channel_name+' > account:'+acc+' last_wbid:'+last_wbid);
-
-            
-        });
+        
         
     }else{
         res.send('no channel: '+channel_name);
