@@ -106,8 +106,6 @@ function refresh (req,res,channel_name) {
             };
 
             weibo.fetchPosts(acc,lid,function (posts,dels,last_wbid) {
-                if(res)res.json(posts);
-
                 
                 for (var i = 0; i < posts.length; i++) {
                     var post=posts[i];
@@ -120,7 +118,7 @@ function refresh (req,res,channel_name) {
                    
                     if (accs.indexOf(post.user.id)>-1) {
                         // 自己转自己的... 一般都是广告
-                        console.info('ignore: '+post.text);
+                        console.info('ignore post: '+post.text);
                         continue;
                     };
 
@@ -129,7 +127,7 @@ function refresh (req,res,channel_name) {
                     post['channel']=channel_name;
                     postObj.save(post,{
                         success: function(p) {
-                            console.log('success: '+p.id);
+                            console.info('success: '+p.get('text'));
                         },
                         error: function(p, error) {
                           if (error.code!=137) {
@@ -146,8 +144,8 @@ function refresh (req,res,channel_name) {
                         success: function(p) {
                             
                             if (p!=undefined && p.get('type')!=2) {
-                                console.log(p._serverData.text);
-                                console.log('should del:'+p.get('last_wbid')+" type:"+p.get('type'));
+                                //console.log(p._serverData.text);
+                                console.log('should del:'+p.get('wbid')+" type:"+p.get('type'));
                                 //console.log(p.toJSON());
                                 // p.set('type',2,{
                                 //     success:function  (argument) {
@@ -159,10 +157,10 @@ function refresh (req,res,channel_name) {
                                 // });
                                 p.save({type:2},{
                                     success:function  (argument) {
-                                        console.log('update del:'+argument);
+                                        console.info('update del:'+argument);
                                     },
                                     error: function(p, error) {
-                                      console.log('update error:'+error);
+                                      console.error('update error:'+error);
                                     }
                                 });
                             };
@@ -175,6 +173,7 @@ function refresh (req,res,channel_name) {
                 }
 
                 //save last req id
+                /*
                 if (last_wbid) {
                     function newFresh () {
                         console.info('channel:'+channel_name+' > account:'+acc+' last_wbid:'+last_wbid);
@@ -215,6 +214,9 @@ function refresh (req,res,channel_name) {
                         newFresh();
                     }
                 };
+                */
+
+                if(res)res.json(posts);
             });
         })
 

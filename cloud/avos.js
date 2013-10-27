@@ -8,8 +8,7 @@ exports.lastWeiboID=function(acc,callback){
     var q=new AV.Query('Refresh').equalTo('account',acc);
     q.first({
         success: function(p) {
-            console.log('get lastWeiboID:');
-            console.log(p.get('last_wbid'));
+            console.log('get lastWeiboID:'+p.get('last_wbid'));
                 if (p!=undefined) {
                     callback(p);
                 }else{

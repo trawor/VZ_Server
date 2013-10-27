@@ -2,6 +2,8 @@ var avos=require("cloud/avos.js");
 var model=require("cloud/model.js");
 
 exports.fetchPosts=function (userid,from,callback) {
+    from='0'; //强制重新刷
+
     var count=20;
     var path="/2/statuses/user_timeline.json?source=4229079448&uid="+userid+"&since_id="+from+"&count="+count;
     var url="http://api.weibo.com"+path;
