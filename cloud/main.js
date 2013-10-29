@@ -2,12 +2,14 @@ var app=require("cloud/app.js");
 var api=require("cloud/api.js");
 
 
-if(__production){
-	AV.Cloud.setInterval("weiboRefresh",1800, function() {
+
+AV.Cloud.setInterval("weiboRefresh",1800, function() {
+	if(__production){
 		console.info('refresh ----------------');
-	    api.refresh.all();
-	});
-}
+    	api.refresh.all();
+    }
+});
+
 	
 
 
