@@ -125,6 +125,13 @@ function refresh (req,res,channel_name) {
                     var postObj = new Post();
                     
                     post['channel']=channel_name;
+
+                    if (post['geo']) {
+                        var geo=post['geo']['coordinates'];
+                        var gp=new AV.GeoPoint({latitude:geo[0], longitude: geo[1]});
+                        post['geo']=gp;
+                    };
+
                     postObj.save(post,{
                         success: function(p) {
                             console.info('success: '+p.get('text'));
@@ -132,6 +139,8 @@ function refresh (req,res,channel_name) {
                         error: function(p, error) {
                           if (error.code!=137) {
                             console.error(error);
+                          }else{
+                            console.info('exists: '+p.get('wbid'));
                           }
                         }
                     });
